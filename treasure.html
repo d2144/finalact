@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>One Piece Treasure</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pirata+One&display=swap');
+
+    :root{
+      --gold: #f0c23a;
+      --overlay: rgba(0,0,0,0.55);
+    }
+
+    html,body{height:100%; margin:0; padding:0; background:#000; font-family: Arial, sans-serif; -webkit-text-size-adjust:100%;}
+    .screen {
+      display:none;
+      height:100%;
+      width:100%;
+      box-sizing:border-box;
+      position:fixed;
+      top:0; left:0;
+      justify-content:center;
+      align-items:center;
+      flex-direction:column;
+      background-size:cover;
+      background-position:center;
+      padding:18px;
+    }
+    .active { display:flex; animation: fadeIn .45s ease; }
+
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    /* centralized image box (keeps image fully visible) */
+    .image-box {
+      width:100%;
+      max-width:980px;
+      height:calc(100vh - 180px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      position:relative;
+      margin: 0 auto;
+    }
+
+    /* background image used when we want full-bg feel (screen background) */
+    .bg-cover { background-size:cover; background-position:center; }
+
+    /* For map, use <img> that unrolls */
+    #mapImage{ max-height:0; transition: max-height 1.6s ease-out; width:100%; object-fit:contain; }
+
+    /* image inside box when showing poster/portrait */
+    .img-full { max-width: 100%; max-height: 100%; object-fit:contain; border-radius:8px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+
+    /* overlay text on top of image */
+    .overlay {
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      max-width:92%;
+      background: var(--overlay);
+      color: #fff;
+      padding:14px 16px;
+      border-radius:10px;
+      text-align:center;
+      font-size: clamp(16px, 2.6vw, 20px);
+      line-height:1.45;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    }
+
+    /* poster caption stays below poster (you wanted poster to be same) */
+    .poster-caption { margin-top:18px; color:var(--gold); font-family: 'Pirata One', cursive; font-size:1.25rem; text-shadow:0 2px 8px rgba(0,0,0,0.6); }
+
+    /* Buttons (outside images so always visible) */
+    .controls { margin-top:18px; z-index:20; text-align:center; }
+    .btn {
+      background: var(--gold);
+      color: #111;
+      border: none;
+      padding: 12px 22px;
+      border-radius:10px;
+      font-weight:700;
+      font-size:16px;
+      cursor:pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+    }
+    .btn:active{ transform: translateY(2px); }
+
+    /* burning animation for poster element */
+    .burn {
+      animation: burnEffect 1.6s forwards ease-in;
+    }
+    @keyframes burnEffect {
+      0% { filter: none; transform: scale(1) rotate(0deg); opacity:1; }
+      60% { filter: sepia(.6) saturate(2) blur(1px); transform: scale(.85) rotate(3deg); opacity:.8; }
+      100% { transform: scale(.5) rotate(10deg); opacity:0; }
+    }
+
+    /* confetti pieces */
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 14px;
+      border-radius:2px;
+      z-index:99999;
+      pointer-events:none;
+      animation: confFall linear forwards;
+    }
+    @keyframes confFall { to { transform: translateY(110vh) rotate(540deg); opacity: 0; } }
+
+    /* love text style */
+    .loveText { font-family: Georgia, 'Times New Roman', serif; color: #ffeef7; font-size: clamp(15px,2.6vw,20px); line-height:1.5; }
+
+    /* responsive tweaks */
+    @media (max-width:520px){
+      .overlay{ font-size:16px; padding:12px; }
+      .btn{ font-size:15px; padding:10px 16px; }
+      .poster-caption{ font-size:1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen 1: Opening (background image; overlay text centered on it) -->
+  <div id="screen1" class="screen active" style="background-image:url('opening.jpg'); background-size:cover;">
+    <div class="image-box">
+      <!-- we rely on the screen background here; overlay shows on top -->
+      <div class="overlay" id="overlay1">Ahoy Luffy! Are you ready to find your One Piece?</div>
+    </div>
+    <div class="controls"><button class="btn" onclick="go(2)">Set Sail</button></div>
+  </div>
+
+  <!-- Screen 2: Map (image unroll) -->
+  <div id="screen2" class="screen" style="background:#000;">
+    <div class="image-box">
+      <img id="mapImage" src="map.jpg" alt="map" />
+    </div>
+    <div class="controls"><button class="btn" id="mapBtn" onclick="unrollMap()">Unroll Map</button></div>
+  </div>
+
+  <!-- Screen 3: Goodbye1 (image as background so overlay sits on it) -->
+  <div id="screen3" class="screen" style="background-image:url('goodbye1.jpeg'); background-size:cover;">
+    <div class="image-box">
+      <div class="overlay loveText">As my final act of love, this is for you cuz I couldn’t do it on the call. I don’t know if you’ll open it or not but it is going to stay forever for you and whenever you want it.</div>
+    </div>
+    <div class="controls"><button class="btn" onclick="go(4)">Next</button></div>
+  </div>
+
+  <!-- Screen 4: Poster (we show poster in contained box so it doesn't crop) -->
+  <div id="screen4" class="screen" style="background:#000;">
+    <div class="image-box">
+      <div id="posterBox" style="width:86%; height:86%; background-image:url('poster.jpeg'); background-repeat:no-repeat; background-position:center; background-size:contain; border-radius:8px;"></div>
+    </div>
+    <div class="poster-caption">Wanted: Monkey D. Luffy — Dead or Alive 💰</div>
+    <div class="controls"><button class="btn" onclick="burnPoster()">Reveal Path</button></div>
+  </div>
+
+  <!-- Screen 5: Goodbye2 (reuse goodbye1 pic as background, overlay text) -->
+  <div id="screen5" class="screen" style="background-image:url('goodbye1.jpeg'); background-size:cover;">
+    <div class="image-box">
+      <div class="overlay loveText">It was the greatest time with you and I don’t have any regrets at all, just like you wished it. Doesn’t feel like it’s ending cuz maybe I’ll never stop having feelings for you. I’ll always remember u as my first love, healthy one. Don’t think I’m going to feel bad abt u, and if that ever happens, just know im in my wrong state of mind.</div>
+    </div>
+    <div class="controls"><button class="btn" onclick="go(6)">Continue</button></div>
+  </div>
+
+  <!-- Screen 6: Quiz (opening.jpg background) -->
+  <div id="screen6" class="screen" style="background-image:url('opening.jpg'); background-size:cover;">
+    <div class="image-box">
+      <div class="overlay pirate" style="font-family:'Pirata One',cursive; font-size:clamp(18px,3.2vw,26px);">
+        Who's my favourite boy?
+        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+          <button class="btn" onclick="quizPick()">White Choco Chip</button>
+          <button class="btn" onclick="quizPick()">Hen Hen</button>
+          <button class="btn" onclick="quizPick()">Vampire Fetish</button>
+          <button class="btn" onclick="quizPick()">Love of my life</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7: Goodbye3 -->
+  <div id="screen7" class="screen" style="background-image:url('goodbye3.jpeg'); background-size:cover;">
+    <div class="image-box">
+      <div class="overlay loveText">You were the one piece of my life, and you’re always going to be. If I’m going to blame u at all it’s for setting the standards so high and keeping me happy all the time. If fate ever wishes again you know I’ll come back running to you but until then, you’re my best friend baby.</div>
+    </div>
+    <div class="controls"><button class="btn" onclick="fireFinal()">Let’s go to the treasure</button></div>
+  </div>
+
+  <!-- Screen 8: Final -->
+  <div id="screen8" class="screen" style="background-image:url('final.jpeg'); background-size:cover;">
+    <div class="image-box">
+      <div class="overlay" style="font-size:clamp(24px,5vw,40px); font-family:'Pirata One',cursive; color:var(--gold);">Goodbye</div>
+    </div>
+  </div>
+
+  <script>
+    // initial
+    let cur = 1;
+    function go(n){
+      // hide current, show n
+      document.getElementById('screen'+cur).classList.remove('active');
+      document.getElementById('screen'+n).classList.add('active');
+      cur = n;
+    }
+
+    // map unroll (image expands)
+    function unrollMap(){
+      const img = document.getElementById('mapImage');
+      const btn = document.getElementById('mapBtn');
+      if(btn) btn.style.display = 'none';
+      // cause image to expand
+      img.style.maxHeight = '82vh';
+      // after unroll, auto go next
+      setTimeout(()=> go(3), 1600);
+    }
+    // attach mapBtn id if not present (compat)
+    document.addEventListener('DOMContentLoaded', ()=> {
+      const mpBtn = document.getElementById('mapBtn');
+      if(mpBtn) mpBtn.addEventListener('click', unrollMap);
+    });
+
+    // poster "burn" animation then next
+    function burnPoster(){
+      const box = document.getElementById('posterBox');
+      box.classList.add('burn');
+      setTimeout(()=> go(5), 1200);
+    }
+
+    // quiz pick -> show message, confetti, then go to goodbye3
+    function quizPick(){
+      // simple small popup
+      alert("Wrong! It’s all of them moggu.");
+      // confetti
+      launchConfetti(60);
+      // move to goodbye3 after short delay so confetti shows
+      setTimeout(()=> go(7), 1100);
+    }
+
+    // final flow: confetti then final screen
+    function fireFinal(){
+      launchConfetti(80);
+      setTimeout(()=> go(8), 900);
+    }
+
+    // confetti function: create colored pieces
+    function launchConfetti(count){
+      for(let i=0;i<count;i++){
+        const piece = document.createElement('div');
+        piece.className = 'confetti';
+        piece.style.left = (Math.random()*100) + 'vw';
+        piece.style.background = `hsl(${Math.floor(Math.random()*360)}, 85%, 55%)`;
+        piece.style.width = (6 + Math.random()*10) + 'px';
+        piece.style.height = (8 + Math.random()*14) + 'px';
+        piece.style.transform = `translateY(-30px) rotate(${Math.random()*360}deg)`;
+        // random duration
+        const dur = 2000 + Math.random()*2500;
+        piece.style.animationDuration = (dur/1000) + 's';
+        document.body.appendChild(piece);
+        setTimeout(()=> piece.remove(), dur + 300);
+      }
+    }
+
+    // start on screen1 shown (already active in markup)
+  </script>
+</body>
+</html>
